@@ -16,7 +16,7 @@ Focus on retention, curiosity gaps, and conversion efficiency.
 
 # Initialize Gemini 3 Flash
 model = genai.GenerativeModel(
-    model_name="gemini-1.5-flash", 
+    model_name="gemini-3-flash-preview", 
     system_instruction=SYSTEM_PROMPT
 )
 
