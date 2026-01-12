@@ -1,5 +1,5 @@
 # 🚀 TubePilot-Assistant
-### *The PhD-Level YouTube Growth & SEO Engine*
+### *The YouTube Growth & SEO Engine*
 
 **TubePilot-Assistant** is an advanced AI-powered suite designed for deep algorithmic optimization. Powered by **Gemini 3 Flash**, it helps creators master the first 5 seconds of their videos and bridge the gap between viewer attention and final conversion.
 
