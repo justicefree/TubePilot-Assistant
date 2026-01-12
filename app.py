@@ -1,3 +1,13 @@
+from st_paywall import add_auth
+
+# This one line handles the entire login and payment check!
+add_auth(
+    required=True,
+    active_plan_minutes=1, # Check subscription status every minute
+)
+
+# Now, only paid users will see the rest of your app code below...
+st.title("Welcome to TubePilot Pro, " + st.experimental_user.email)
 import streamlit as st
 import google.generativeai as genai
 
