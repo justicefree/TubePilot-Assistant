@@ -2,16 +2,16 @@ import streamlit as st
 from openai import OpenAI
 import pandas as pd
 import plotly.express as px
+from st_copy_to_clipboard import st_copy_to_clipboard
 
 # --- 1. PAGE CONFIG & LOGO ---
 st.set_page_config(page_title="TubePilot Assistant", page_icon="🚀", layout="wide")
 
 # --- 2. SECURE CLIENT INITIALIZATION ---
-# This check prevents the "KeyError" by making sure the secret exists before using it
 if "openai_api_key" in st.secrets:
     client = OpenAI(api_key=st.secrets["openai_api_key"])
 else:
-    st.error("⚠️ Secret Key Missing: Please go to Streamlit Settings > Secrets and paste your 'openai_api_key'.")
+    st.error("⚠️ Secret Key Missing: Please check your Streamlit Settings > Secrets.")
     st.stop()
 
 # --- 3. AUTHENTICATION GUARD ---
@@ -46,7 +46,6 @@ with st.sidebar:
     st.subheader("Subscription")
     st.write("Plan: **TubePilot Premium ($15/mo)**")
     
-    # Check if stripe secret exists to avoid secondary errors
     if "stripe" in st.secrets:
         st.link_button("💳 Pay or Manage Subscription", st.secrets["stripe"]["stripe_link_live"], use_container_width=True)
     
@@ -75,6 +74,9 @@ with tab1:
                 )
                 if hasattr(response, 'output_text'):
                     st.markdown("### 🤖 Agent Recommendations")
+                    # THE NEW CLIPBOARD FEATURE
+                    st_copy_to_clipboard(response.output_text, before_text="📋 Copy Full SEO Report")
+                    
                     st.markdown(response.output_text)
                     st.success("Analysis Complete!")
             except Exception as e:
@@ -119,6 +121,7 @@ with tab3:
                     input=f"Generate 5 viral video ideas for a {niche} channel.",
                     text={"verbosity": "high"}
                 )
+                st_copy_to_clipboard(res.output_text, before_text="📋 Copy Viral Ideas")
                 st.markdown(res.output_text)
             except Exception as e:
                 st.error(f"Error: {e}")
