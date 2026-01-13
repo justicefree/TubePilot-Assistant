@@ -14,7 +14,7 @@ if not st.user.is_logged_in:
         
         # This button triggers the Google Login window
         if st.button("Log in with Google", type="primary", use_container_width=True):
-            st.login("google", scope=["openid", "email", "profile"])
+            st.login("google")
         
         st.divider()
         st.caption("Secure login powered by Google Identity.")
