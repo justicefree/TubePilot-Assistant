@@ -3,3 +3,4 @@ openai
 pandas
 plotly
 st-copy-to-clipboard
+stripe
