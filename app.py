@@ -74,9 +74,7 @@ with tab1:
                 )
                 if hasattr(response, 'output_text'):
                     st.markdown("### 🤖 Agent Recommendations")
-                    # THE NEW CLIPBOARD FEATURE
                     st_copy_to_clipboard(response.output_text, before_text="📋 Copy Full SEO Report")
-                    
                     st.markdown(response.output_text)
                     st.success("Analysis Complete!")
             except Exception as e:
@@ -91,16 +89,30 @@ with tab2:
     if uploaded_file:
         try:
             df = pd.read_csv(uploaded_file)
-            if 'Total' in df.iloc[0].values:
+            
+            # Clean up YouTube's "Total" row if it exists
+            if not df.empty and 'Total' in str(df.iloc[0].values):
                 df = df.iloc[1:]
 
             if 'Average percentage viewed (%)' in df.columns:
-                avg_ret = df['Average percentage viewed (%)'].astype(float).mean()
+                # Ensure data is numeric for calculation
+                df['Average percentage viewed (%)'] = pd.to_numeric(df['Average percentage viewed (%)'], errors='coerce')
+                avg_ret = df['Average percentage viewed (%)'].mean()
+                
                 st.metric("Avg. Channel Retention", f"{avg_ret:.2f}%")
                 
-                fig = px.scatter(df, x="Duration", y="Average percentage viewed (%)", 
-                                 hover_name="Video title", size="Views", 
-                                 title="Retention vs. Video Length")
+                # Dynamic sizing: Use 'Views' if available, otherwise use None
+                size_col = "Views" if "Views" in df.columns else None
+                
+                fig = px.scatter(
+                    df, 
+                    x="Duration", 
+                    y="Average percentage viewed (%)", 
+                    hover_name="Video title", 
+                    size=size_col,
+                    title="Retention vs. Video Length",
+                    labels={"Average percentage viewed (%)": "Retention (%)", "Duration": "Length (sec)"}
+                )
                 st.plotly_chart(fig, use_container_width=True)
             else:
                 st.warning("CSV uploaded, but 'Average percentage viewed (%)' column not found.")
