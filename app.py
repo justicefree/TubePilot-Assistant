@@ -4,7 +4,7 @@ import pandas as pd
 import plotly.express as px
 from st_copy_to_clipboard import st_copy_to_clipboard
 
-# --- 1. PAGE CONFIG & LOGO ---
+# --- 1. PAGE CONFIG ---
 st.set_page_config(page_title="TubePilot Assistant", page_icon="🚀", layout="wide")
 
 # --- 2. SECURE CLIENT INITIALIZATION ---
@@ -21,10 +21,8 @@ if not st.user.is_logged_in:
         st.title("🚀 TubePilot Assistant")
         st.write("### AI-Powered Strategy for Creators")
         st.info("Please log in to access your SEO Agents and Content Dashboard.")
-        
         if st.button("Log in with Google", type="primary", use_container_width=True):
             st.login("google")
-        
         st.divider()
         st.caption("Secure login powered by Google Identity.")
     st.stop()
@@ -32,108 +30,91 @@ if not st.user.is_logged_in:
 # --- 4. LOGGED-IN SIDEBAR ---
 with st.sidebar:
     user_name = st.user.get("name", "Creator")
-    user_email = st.user.get("email", "")
     user_pic = st.user.get("picture", "")
-
-    if user_pic:
-        st.image(user_pic, width=80)
-    
+    if user_pic: st.image(user_pic, width=80)
     st.title(f"Hi, {user_name}!")
-    st.caption(f"📧 {user_email}")
-    
     st.divider()
-    
     st.subheader("Subscription")
     st.write("Plan: **TubePilot Premium ($15/mo)**")
-    
     if "stripe" in st.secrets:
         st.link_button("💳 Pay or Manage Subscription", st.secrets["stripe"]["stripe_link_live"], use_container_width=True)
-    
     st.divider()
     if st.button("Logout", use_container_width=True):
         st.logout()
 
 # --- 5. MAIN DASHBOARD ---
 st.title("📺 TubePilot Control Center")
-st.write("Welcome to your command center. Use the agents below to grow your channel.")
-
 tab1, tab2, tab3 = st.tabs(["SEO Keyword Agent", "Retention AI", "Topic Research"])
 
 # --- TAB 1: SEO KEYWORD AGENT ---
 with tab1:
     st.header("SEO Keyword Agent")
-    topic = st.text_input("What is your next video about?", placeholder="e.g. How to grow on YouTube 2026")
-    
+    topic = st.text_input("What is your next video about?", placeholder="e.g. How to grow on YouTube 2026", key="seo_input")
     if topic:
-        with st.spinner("GPT-5 Nano Agent is researching keywords..."):
+        with st.spinner("Agent researching..."):
             try:
                 response = client.responses.create(
                     model="gpt-5-nano",
-                    input=f"Act as a YouTube SEO Expert. For the topic '{topic}', provide: 1. 5 High-Volume Keywords. 2. 3 Viral Title Ideas. 3. An SEO description.",
-                    text={"verbosity": "high"} 
+                    input=f"YouTube SEO for: {topic}. Provide 5 Keywords, 3 Titles, and a Description.",
+                    text={"verbosity": "high"}
                 )
-                if hasattr(response, 'output_text'):
-                    st.markdown("### 🤖 Agent Recommendations")
-                    st_copy_to_clipboard(response.output_text, before_text="📋 Copy Full SEO Report")
-                    st.markdown(response.output_text)
-                    st.success("Analysis Complete!")
+                output = response.output_text
+                st.subheader("🤖 Agent Recommendations")
+                st_copy_to_clipboard(output) # Simplified: No 'before_text' to avoid errors
+                st.markdown(output)
             except Exception as e:
-                st.error(f"Agent Error: {e}")
+                st.error(f"Error: {e}")
 
 # --- TAB 2: RETENTION AI ---
 with tab2:
     st.header("Retention AI")
-    st.write("Upload your YouTube 'Table Data' CSV to find where viewers drop off.")
-    uploaded_file = st.file_uploader("Upload YouTube CSV", type=["csv"])
+    st.write("Upload your YouTube 'Table Data' CSV.")
+    uploaded_file = st.file_uploader("Upload YouTube CSV", type=["csv"], key="retention_upload")
     
     if uploaded_file:
         try:
             df = pd.read_csv(uploaded_file)
+            df = df[~df.iloc[:, 0].astype(str).str.contains('Total', na=False)]
             
-            # Clean up YouTube's "Total" row if it exists
-            if not df.empty and 'Total' in str(df.iloc[0].values):
-                df = df.iloc[1:]
-
-            if 'Average percentage viewed (%)' in df.columns:
-                # Ensure data is numeric for calculation
-                df['Average percentage viewed (%)'] = pd.to_numeric(df['Average percentage viewed (%)'], errors='coerce')
-                avg_ret = df['Average percentage viewed (%)'].mean()
+            ret_col = 'Average percentage viewed (%)'
+            dur_col = 'Duration'
+            
+            if ret_col in df.columns:
+                df[ret_col] = pd.to_numeric(df[ret_col], errors='coerce')
+                df[dur_col] = pd.to_numeric(df[dur_col], errors='coerce')
+                df = df.dropna(subset=[ret_col])
                 
+                avg_ret = df[ret_col].mean()
                 st.metric("Avg. Channel Retention", f"{avg_ret:.2f}%")
                 
-                # Dynamic sizing: Use 'Views' if available, otherwise use None
-                size_col = "Views" if "Views" in df.columns else None
-                
+                with st.expander("🔍 View Raw Data Table"):
+                    st.dataframe(df)
+
                 fig = px.scatter(
-                    df, 
-                    x="Duration", 
-                    y="Average percentage viewed (%)", 
-                    hover_name="Video title", 
-                    size=size_col,
+                    df, x=dur_col, y=ret_col, 
+                    hover_name=df.columns[0],
                     title="Retention vs. Video Length",
-                    labels={"Average percentage viewed (%)": "Retention (%)", "Duration": "Length (sec)"}
+                    template="plotly_dark"
                 )
                 st.plotly_chart(fig, use_container_width=True)
             else:
-                st.warning("CSV uploaded, but 'Average percentage viewed (%)' column not found.")
+                st.error(f"Column '{ret_col}' not found.")
         except Exception as e:
             st.error(f"Analysis error: {e}")
 
 # --- TAB 3: TOPIC RESEARCH ---
 with tab3:
     st.header("Topic Research")
-    st.write("Generate high-CTR titles and thumbnail concepts.")
-    niche = st.text_input("What is your channel's niche?")
-    
+    niche = st.text_input("What is your channel's niche?", placeholder="e.g. Finance, Gaming, Cooking", key="niche_input")
     if st.button("Generate Ideas") and niche:
-        with st.spinner("Analyzing viral patterns..."):
+        with st.spinner("Analyzing..."):
             try:
                 res = client.responses.create(
-                    model="gpt-5-nano",
-                    input=f"Generate 5 viral video ideas for a {niche} channel.",
-                    text={"verbosity": "high"}
+                    model="gpt-5-nano", 
+                    input=f"Generate 5 viral video ideas for a {niche} channel."
                 )
-                st_copy_to_clipboard(res.output_text, before_text="📋 Copy Viral Ideas")
-                st.markdown(res.output_text)
+                topic_output = res.output_text
+                st_copy_to_clipboard(topic_output) # Simplified to fix error
+                st.markdown(topic_output)
             except Exception as e:
                 st.error(f"Error: {e}")
