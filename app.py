@@ -1,49 +1,40 @@
 import streamlit as st
-
-# Show errors in the app instead of a generic "Internal server error"
 import traceback
 
+# ✅ Must be the first Streamlit command in the app
+st.set_page_config(page_title="TubePilot Assistant", page_icon="🚀", layout="wide")
+
 try:
-    # ======= YOUR ORIGINAL IMPORTS =======
     from openai import OpenAI
     import pandas as pd
-    import plotly.express as px
     from st_copy_to_clipboard import st_copy_to_clipboard
     import stripe
-    import authlib  # will crash here if Authlib isn't installed
 
     # ----------------------------
-    # 1) PAGE CONFIG
-    # ----------------------------
-    st.set_page_config(page_title="TubePilot Assistant", page_icon="🚀", layout="wide")
-
-    # Quick sanity checks (safe to show)
-    st.write("✅ App booted")
-    st.write("Authlib version:", getattr(authlib, "__version__", "unknown"))
-
-    # ----------------------------
-    # 2) READ SECRETS SAFELY
+    # 1) READ SECRETS SAFELY
     # ----------------------------
     OPENAI_KEY = st.secrets.get("openai_api_key", "")
     STRIPE_KEY = st.secrets.get("stripe_secret_key", "")
     STRIPE_UPGRADE_LINK = st.secrets.get("stripe_link_live", "")
 
-    st.write("OpenAI key present:", bool(OPENAI_KEY), "length:", len(OPENAI_KEY))
-    st.write("Stripe key present:", bool(STRIPE_KEY))
-    st.write("Stripe upgrade link present:", bool(STRIPE_UPGRADE_LINK))
-
+    # Create clients only when configured
     client = OpenAI(api_key=OPENAI_KEY) if OPENAI_KEY else None
     stripe.api_key = STRIPE_KEY if STRIPE_KEY else None
 
     # ----------------------------
-    # 3) SUBSCRIPTION CHECK
+    # 2) HELPERS
     # ----------------------------
     ADMIN_EMAILS = {"ml.channel7002@gmail.com"}
+
+    def get_user_email() -> str:
+        return (getattr(st.user, "email", "") or "").strip().lower()
+
+    def get_user_name() -> str:
+        return (getattr(st.user, "name", "") or "Creator").strip()
 
     def is_subscribed(email: str) -> bool:
         if not email:
             return False
-        email = email.strip().lower()
         if email in ADMIN_EMAILS:
             return True
         if not STRIPE_KEY:
@@ -59,8 +50,17 @@ try:
         return False
 
     # ----------------------------
-    # 4) AUTH GUARD
+    # 3) AUTH GUARD (SAFE)
     # ----------------------------
+    # If auth runtime isn't available, show a clear message instead of crashing
+    if not hasattr(st, "user") or not hasattr(st.user, "is_logged_in"):
+        st.title("🚀 TubePilot Assistant")
+        st.error(
+            "Authentication runtime is not available in this deployment. "
+            "Ensure `streamlit[auth]` and `Authlib` are installed and redeploy."
+        )
+        st.stop()
+
     if not st.user.is_logged_in:
         cols = st.columns([1, 2, 1])
         with cols[1]:
@@ -74,10 +74,11 @@ try:
             )
         st.stop()
 
-    user_email = (getattr(st.user, "email", "") or "").strip().lower()
-    user_name = (getattr(st.user, "name", "") or "Creator").strip()
-
-    st.write("✅ Logged in as:", user_email)
+    # ----------------------------
+    # 4) PAYWALL CHECK
+    # ----------------------------
+    user_email = get_user_email()
+    user_name = get_user_name()
 
     has_access = is_subscribed(user_email)
 
@@ -100,15 +101,19 @@ try:
         st.button("Logout", on_click=st.logout)
 
     # ----------------------------
-    # 6) MAIN UI
+    # 6) MAIN
     # ----------------------------
     st.title("📺 TubePilot Control Center")
 
     if not has_access:
         st.header("Ready to grow your channel?")
         st.write("Upgrade to TubePilot Premium to unlock our AI SEO Agents and Retention Analytics.")
+        st.info("Your subscription directly supports the development of more creator tools!")
         st.stop()
 
+    # ----------------------------
+    # 7) PREMIUM FEATURES
+    # ----------------------------
     tab1, tab2, tab3 = st.tabs(["SEO Keyword Agent", "Retention AI", "Topic Research"])
 
     with tab1:
@@ -143,7 +148,7 @@ try:
                     st.markdown(res.output_text)
 
 except Exception as e:
-    st.set_page_config(page_title="TubePilot Assistant", page_icon="🚀", layout="wide")
+    # ❗ Do NOT call st.set_page_config here
     st.title("❌ TubePilot crashed — real error below")
     st.error(str(e))
     st.code(traceback.format_exc())
