@@ -63,7 +63,7 @@ try:
         st.title("🚀 TubePilot Assistant")
         st.error(
             "Authentication is not active in this deployment.\n\n"
-            "Fix in Streamlit Secrets by using ONLY:\n"
+            "In Streamlit Secrets, use ONLY:\n"
             "[auth]\n"
             "redirect_uri, cookie_secret, client_id, client_secret, server_metadata_url\n\n"
             "Then reboot the app."
@@ -154,5 +154,11 @@ try:
                 with st.spinner("Analyzing viral trends..."):
                     res = client.responses.create(model="gpt-5-nano", input=f"5 ideas for {niche}")
                     st_copy_to_clipboard(res.output_text)
-                    st.markdown(res.output_text
-::contentReference[oaicite:0]{index=0}
+                    st.markdown(res.output_text)
+
+except Exception as e:
+    # Do NOT call st.set_page_config here (it must only be first)
+    st.title("❌ TubePilot crashed — error below")
+    st.error(str(e))
+    st.code(traceback.format_exc())
+    st.stop()
