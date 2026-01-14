@@ -1,4 +1,10 @@
 import streamlit as st
+try:
+    import authlib
+    st.write("Authlib OK:", authlib.__version__)
+except Exception as e:
+    st.error(f"Authlib import failed: {e}")
+    st.stop()
 from openai import OpenAI
 import pandas as pd
 from st_copy_to_clipboard import st_copy_to_clipboard
