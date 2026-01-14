@@ -1,23 +1,24 @@
 import streamlit as st
 import traceback
 
-# ✅ Must be the first Streamlit command in the app
+# MUST be the first Streamlit command
 st.set_page_config(page_title="TubePilot Assistant", page_icon="🚀", layout="wide")
 
 try:
+    # ---- Imports ----
     from openai import OpenAI
     import pandas as pd
     from st_copy_to_clipboard import st_copy_to_clipboard
     import stripe
 
     # ----------------------------
-    # 1) READ SECRETS SAFELY
+    # 1) SECRETS (SAFE GET)
     # ----------------------------
     OPENAI_KEY = st.secrets.get("openai_api_key", "")
     STRIPE_KEY = st.secrets.get("stripe_secret_key", "")
     STRIPE_UPGRADE_LINK = st.secrets.get("stripe_link_live", "")
 
-    # Create clients only when configured
+    # Create clients only if configured
     client = OpenAI(api_key=OPENAI_KEY) if OPENAI_KEY else None
     stripe.api_key = STRIPE_KEY if STRIPE_KEY else None
 
@@ -35,10 +36,14 @@ try:
     def is_subscribed(email: str) -> bool:
         if not email:
             return False
+
         if email in ADMIN_EMAILS:
             return True
+
+        # If Stripe isn't configured, treat as not subscribed (no crash)
         if not STRIPE_KEY:
             return False
+
         try:
             customers = stripe.Customer.list(email=email, limit=1)
             if customers.data:
@@ -47,17 +52,21 @@ try:
                 return len(subs.data) > 0
         except Exception:
             return False
+
         return False
 
     # ----------------------------
-    # 3) AUTH GUARD (SAFE)
+    # 3) AUTH CHECK (SINGLE-PROVIDER MODE)
     # ----------------------------
-    # If auth runtime isn't available, show a clear message instead of crashing
+    # If auth isn't activated in this deployment, show a clear message and stop.
     if not hasattr(st, "user") or not hasattr(st.user, "is_logged_in"):
         st.title("🚀 TubePilot Assistant")
         st.error(
-            "Authentication runtime is not available in this deployment. "
-            "Ensure `streamlit[auth]` and `Authlib` are installed and redeploy."
+            "Authentication is not active in this deployment.\n\n"
+            "Fix in Streamlit Secrets by using ONLY:\n"
+            "[auth]\n"
+            "redirect_uri, cookie_secret, client_id, client_secret, server_metadata_url\n\n"
+            "Then reboot the app."
         )
         st.stop()
 
@@ -66,42 +75,42 @@ try:
         with cols[1]:
             st.title("🚀 TubePilot Assistant")
             st.write("### The AI Command Center for Creators")
+            st.write("Log in to access your creator tools.")
+            # IMPORTANT: single-provider mode -> st.login() with NO provider argument
             st.button(
                 "Log in with Google",
                 type="primary",
                 use_container_width=True,
-                on_click=lambda: st.login("google"),
+                on_click=st.login,
             )
         st.stop()
 
-    # ----------------------------
-    # 4) PAYWALL CHECK
-    # ----------------------------
+    # Logged in
     user_email = get_user_email()
     user_name = get_user_name()
-
     has_access = is_subscribed(user_email)
 
     # ----------------------------
-    # 5) SIDEBAR
+    # 4) SIDEBAR
     # ----------------------------
     with st.sidebar:
         st.title(f"Hi, {user_name}!")
-        st.caption(user_email)
+        if user_email:
+            st.caption(user_email)
 
         if not has_access:
             st.warning("🔒 Premium Required")
             if STRIPE_UPGRADE_LINK:
                 st.link_button("💳 Upgrade for $15/mo", STRIPE_UPGRADE_LINK, use_container_width=True)
             else:
-                st.info("Upgrade link not configured in Secrets.")
+                st.info("Upgrade link not configured (`stripe_link_live`).")
         else:
             st.success("✅ Premium Active")
 
         st.button("Logout", on_click=st.logout)
 
     # ----------------------------
-    # 6) MAIN
+    # 5) MAIN
     # ----------------------------
     st.title("📺 TubePilot Control Center")
 
@@ -112,7 +121,7 @@ try:
         st.stop()
 
     # ----------------------------
-    # 7) PREMIUM FEATURES
+    # 6) PREMIUM FEATURES
     # ----------------------------
     tab1, tab2, tab3 = st.tabs(["SEO Keyword Agent", "Retention AI", "Topic Research"])
 
@@ -121,7 +130,7 @@ try:
         topic = st.text_input("What is your next video about?")
         if topic:
             if not client:
-                st.error("OpenAI is not configured. Add `openai_api_key` to Secrets.")
+                st.error("OpenAI is not configured. Add `openai_api_key` to Streamlit Secrets.")
             else:
                 with st.spinner("AI Agent at work..."):
                     res = client.responses.create(model="gpt-5-nano", input=f"SEO for: {topic}")
@@ -140,16 +149,10 @@ try:
         niche = st.text_input("Your niche?")
         if st.button("Generate Ideas") and niche:
             if not client:
-                st.error("OpenAI is not configured. Add `openai_api_key` to Secrets.")
+                st.error("OpenAI is not configured. Add `openai_api_key` to Streamlit Secrets.")
             else:
                 with st.spinner("Analyzing viral trends..."):
                     res = client.responses.create(model="gpt-5-nano", input=f"5 ideas for {niche}")
                     st_copy_to_clipboard(res.output_text)
-                    st.markdown(res.output_text)
-
-except Exception as e:
-    # ❗ Do NOT call st.set_page_config here
-    st.title("❌ TubePilot crashed — real error below")
-    st.error(str(e))
-    st.code(traceback.format_exc())
-    st.stop()
+                    st.markdown(res.output_text
+::contentReference[oaicite:0]{index=0}
