@@ -13,6 +13,7 @@ st.set_page_config(page_title="TubePilot Assistant", page_icon="🚀", layout="w
 # 2) READ SECRETS SAFELY
 # ----------------------------
 OPENAI_KEY = st.secrets.get("openai_api_key", "")
+st.write("OPENAI_KEY present:", bool(OPENAI_KEY), "length:", len(OPENAI_KEY))
 STRIPE_KEY = st.secrets.get("stripe_secret_key", "")
 STRIPE_UPGRADE_LINK = st.secrets.get("stripe_link_live", "")
 
