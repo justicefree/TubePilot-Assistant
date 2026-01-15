@@ -74,21 +74,8 @@ try:
         cols = st.columns([1, 2, 1])
         with cols[1]:
             st.title("🚀 TubePilot Assistant")
-            st.caption("The AI Command Center for Creators")
-
-st.markdown("""
-**Welcome to TubePilot Assistant**
-
-For Creators, By Creators. TubePilot is your unfair advantage in the creator economy.  
-While others create content based on intuition, you will create based on intelligence.
-
-**What you get inside:**
-- **GPT-5 Powered Brain:** The latest AI tailored specifically for YouTube logic.
-- **Safe & Secure:** Log in with your existing Google account.
-- **Premium Insights:** Access to research tools that prioritize credible, verifiable data over noise.
-
-Ready to professionalize your channel? **Log in** to start your research.
-""")
+            st.write("### The AI Command Center for Creators")
+st.write("Log in to access your creator tools.")
             # IMPORTANT: single-provider mode -> st.login() with NO provider argument
             st.button(
                 "Log in with Google",
