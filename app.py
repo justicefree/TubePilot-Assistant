@@ -75,7 +75,7 @@ try:
         with cols[1]:
             st.title("🚀 TubePilot Assistant")
             st.write("### The AI Command Center for Creators")
-st.write("Log in to access your creator tools.")
+            st.write("Log in to access your creator tools.")
             # IMPORTANT: single-provider mode -> st.login() with NO provider argument
             st.button(
                 "Log in with Google",
